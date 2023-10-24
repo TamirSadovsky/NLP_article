@@ -1,4 +1,4 @@
-# Local Citation Recommendation - Advancing Prefetching: A Comparative Analysis of Encoding Techniques for Citation Retrieval
+## Local Citation Recommendation - Advancing Prefetching: A Comparative Analysis of Encoding Techniques for Citation Retrieval
 
 <!--Maybe you want to add it: Welcome to our NLP project at Tel Aviv University, where we explore innovative encoding techniques for the prefetching step and introduce substantial enhancements to the dataset originally utilized in the referenced article. -->
 
