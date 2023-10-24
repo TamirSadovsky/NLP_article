@@ -1,4 +1,12 @@
-# Local Citation Recommendation with Hierarchical-Attention Text Encoder and SciBERT-based Reranking
+# Local Citation Recommendation - Towards The Perfect Prefetching : A Comparative Analysis of Encoding Techniques for Citation Retrieval
+
+This is NLP project from TAU univercity, aiming to improve performance and results from existing techniques used in https://github.com/nianlonggu/Local-Citation-Recommendation. Full details in our PDF article.
+
+To use our new data:
+To modify our new data:
+To try and generate additional data:
+
+----
 
 <a href="https://colab.research.google.com/github/nianlonggu/Local-Citation-Recommendation/blob/main/Turorial_Local_Citation_Recommendation.ipynb" target="_parent"><img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/></a>
 
