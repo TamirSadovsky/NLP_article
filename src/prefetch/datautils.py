@@ -7,10 +7,13 @@ import re
 from tqdm import tqdm
 import nltk
 from nltk.tokenize import  RegexpTokenizer
-from nltk.stem import WordNetLemmatizer 
+from nltk.stem import WordNetLemmatizer
 from functools import lru_cache
 from nltk.corpus import stopwords
 from nltk.tokenize import sent_tokenize
+from transformers import LlamaTokenizer, LlamaTokenizerFast, BertTokenizer, BertModel
+from transformers import *
+
 
 class SentenceTokenizerForJaccard:
     def __init__(self ):
@@ -22,7 +25,7 @@ class SentenceTokenizerForJaccard:
     @lru_cache(100000)
     def lemmatize( self, w ):
         return self.lemmatizer.lemmatize(w)
-    
+
     def tokenize(self, sen, remove_stopwords = True ):
         if remove_stopwords:
             sen = " ".join( [ w for w in sen.lower().split() if w not in self.general_stopwords ] )
@@ -39,7 +42,7 @@ class JaccardSim:
 
         textA_words = set(self.sent_tok.tokenize( textA.lower(), remove_stopwords = True ).split()  )
         textB_words = set(self.sent_tok.tokenize( textB.lower(), remove_stopwords = True ).split()  )
-        
+
         AB_words = textA_words.intersection( textB_words )
         return float(len( AB_words ) / (  len(textA_words) + len( textB_words )  -  len( AB_words ) + 1e-12  ))
 
@@ -65,13 +68,13 @@ class Vocab:
         self.eos_index = self.word_to_index[self.eos_token]
         self.pad_index = self.word_to_index[self.pad_token]
 
-        self.tokenizer = SentenceTokenizer()   
+        self.tokenizer = SentenceTokenizer()
 
     def index2word( self, idx ):
         return self.index_to_word.get( idx, self.unk_token)
     def word2index( self, word ):
         return self.word_to_index.get( word, -1 )
-    # The sentence needs to be tokenized 
+    # The sentence needs to be tokenized
     def sent2seq( self, sent, max_len = None , tokenize = True):
         if tokenize:
             sent = self.tokenizer.tokenize(sent)
@@ -94,18 +97,18 @@ class Vocab:
         return " ".join(sent)
 
 class PrefetchDataset( Dataset ):
-    def __init__(self, corpus= [], 
+    def __init__(self, corpus= [],
                        paper_database = {},
                        context_database ={},
                        available_paper_ids = None,
-                       max_seq_len = 512, 
-                       max_doc_len = 3, 
+                       max_seq_len = 512,
+                       max_doc_len = 3,
                        words = None,
-                       document_title_label = 0, 
+                       document_title_label = 0,
                        document_abstract_label = 1,
-                       document_fullbody_label = 2, 
+                       document_fullbody_label = 2,
                        citation_context_label = 3,
-                       citation_title_label = 0, 
+                       citation_title_label = 0,
                        citation_abstract_label = 1,
                        citation_fullbody_label = 2,
                        padding_paragraph_label = 10,
@@ -125,7 +128,18 @@ class PrefetchDataset( Dataset ):
             self.available_paper_ids = available_paper_ids
         else:
             self.available_paper_ids = list(paper_database.keys())
-            
+
+        # Llama2 Tokenizer
+        self.tokenizer = LlamaTokenizer.from_pretrained("huggyllama/llama-7b")
+        #self.tokenizer = LlamaTokenizer.from_pretrained("hf-internal-testing/llama-tokenizer")
+
+        # Bert Tokenizer
+        #self.tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+
+        # SciBERT Tokenizer
+        #self.tokenizer = AutoTokenizer.from_pretrained('allenai/scibert_scivocab_uncased')
+        
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.max_seq_len = max_seq_len
         self.max_doc_len = max_doc_len
         self.vocab = Vocab(words)
@@ -143,10 +157,10 @@ class PrefetchDataset( Dataset ):
         self.max_n_hard_negative = max_n_hard_negative
         self.max_n_easy_negative = max_n_easy_negative
 
-        self.jaccard_sim = JaccardSim() 
+        self.jaccard_sim = JaccardSim()
 
 
-        
+
     def load_document( self, paper_id, is_citing_document = False ):
         paper = self.paper_database.get( paper_id, {} )
         title = paper.get("title","")
@@ -163,28 +177,44 @@ class PrefetchDataset( Dataset ):
         citing_id = context["citing_id"]
         citing_document = self.load_document(citing_id, is_citing_document = True)
         citation_context_document = citing_document + [ [ context_text, self.citation_context_label ] ]
-        return citation_context_document    
-    
-    def encode_document( self, document ):
-        
-        document = document[ :self.max_doc_len ]
-        document = document + [ ["", self.padding_paragraph_label ] for _ in range(self.max_doc_len-len(document) ) ] 
-        
+        return citation_context_document
+
+    def encode_document(self, document): 
+        document = document[:self.max_doc_len]
+        document = document + [["", self.padding_paragraph_label] for _ in range(self.max_doc_len - len(document))]
+
+        paragraph_seq_list = []
+        paragraph_type_list = []
+        paragraph_mask_list = []
+        x = []
         for para in document:
             if para[0].strip() == "":
                 para.append(1)
             else:
                 para.append(0)
-        
-        paragraph_text_list, paragraph_type_list, paragraph_mask_list = list(zip( *document ))
-        paragraph_seq_list = [self.vocab.sent2seq(  para, self.max_seq_len ) for para in paragraph_text_list ]
+        x, paragraph_type_list, paragraph_mask_list = list(zip( *document ))
+
+        for para_text in document:
+            # Tokenize the paragraph
+            tokens = self.tokenizer(para_text[0], return_tensors="pt", max_length=self.max_seq_len, truncation=True, padding="max_length")
+
+            input_ids = tokens['input_ids'].squeeze().tolist()
+            attention_mask = [1 if token_id != pad_token_id else 0 for token_id in input_ids]
+            paragraph_seq_list.append(input_ids)
+
+            # Add binary labels based on whether the paragraph is empty or not
+            #paragraph_type_list.append([1 if para_text[0].strip() == "" else 0] * len(input_ids))
+
+
         return paragraph_seq_list, paragraph_type_list, paragraph_mask_list
-        
+
+
+
     def __len__(self):
         return len(self.corpus)
-    
+
     def __getitem__(self, _ ):
-        
+
         document_info = []
         class_label_list = []
         irrelevance_level_list = []
@@ -216,9 +246,9 @@ class PrefetchDataset( Dataset ):
                 corpus_item["jaccard_sim_of_positive_ids"] = jaccard_sim_of_positive_ids
             else:
                 jaccard_sim_of_positive_ids = corpus_item["jaccard_sim_of_positive_ids"]
-                
+
             avg_thres_jaccard_sim = np.mean( jaccard_sim_of_positive_ids  )
-            
+
             for pos in np.random.choice( len(positive_ids), min(len(positive_ids), self.max_n_positive ), replace = False  ):
                 document_info.append( self.encode_document( self.load_document( positive_ids[pos] ) ) )
                 class_label_list.append( idx )
@@ -228,15 +258,15 @@ class PrefetchDataset( Dataset ):
             for pos in np.random.choice( len(hard_negative_ids), len(hard_negative_ids), replace = False ):
                 document_text = self.load_document( hard_negative_ids[pos] )
                 hard_negative_jaccard_sim = self.jaccard_sim.compute_sim( query_text,  " ".join( [_[0] for _ in document_text ] )  )
-                
-                if hard_negative_jaccard_sim >=  avg_thres_jaccard_sim:  
+
+                if hard_negative_jaccard_sim >=  avg_thres_jaccard_sim:
                     document_info.append( self.encode_document( document_text ) )
                     class_label_list.append( idx )
                     irrelevance_level_list.append( 2 )
                     hard_negative_count +=1
                     if hard_negative_count >= self.max_n_hard_negative:
                         break
-                else: 
+                else:
                     document_info.append( self.encode_document( document_text ) )
                     class_label_list.append( idx )
                     irrelevance_level_list.append( 3 )
@@ -260,14 +290,14 @@ class PrefetchDataset( Dataset ):
         paragraph_mask_list  = np.asarray(paragraph_mask_list) == 1
         irrelevance_level_list = np.array(irrelevance_level_list).astype(np.int32)
         class_label_list = np.array( class_label_list ).astype(np.int32)
-        
+
         return paragraph_seq_list, paragraph_type_list, paragraph_mask_list, class_label_list, irrelevance_level_list
 
 
 class PrefetchLoader:
     def __init__(self,  dset, batch_size, shuffle , worker_init_fn  , num_workers = 0, drop_last = True, pin_memory = True):
-        self.dataloader = DataLoader( dset, batch_size= batch_size, shuffle= shuffle, 
-                                     worker_init_fn = worker_init_fn , 
+        self.dataloader = DataLoader( dset, batch_size= batch_size, shuffle= shuffle,
+                                     worker_init_fn = worker_init_fn ,
                                      num_workers= num_workers , drop_last= drop_last, pin_memory = pin_memory)
         def cycle(dataloader):
             while True:
@@ -275,4 +305,4 @@ class PrefetchLoader:
                     yield x
         self.dataiter = iter(cycle( self.dataloader ))
     def get_next( self ):
-        return next(self.dataiter ) 
+        return next(self.dataiter )
