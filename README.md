@@ -1,17 +1,27 @@
-# Local Citation Recommendation - Towards The Perfect Prefetching : A Comparative Analysis of Encoding Techniques for Citation Retrieval
+# Local Citation Recommendation - Advancing Prefetching: A Comparative Analysis of Encoding Techniques for Citation Retrieval
 
-This is NLP project from TAU univercity, aiming to improve performance and results from existing techniques used in https://github.com/nianlonggu/Local-Citation-Recommendation. Full details in our PDF article.
+<!--Maybe you want to add it: Welcome to our NLP project at Tel Aviv University, where we explore innovative encoding techniques for the prefetching step and introduce substantial enhancements to the dataset originally utilized in the referenced article. -->
 
-All our new data and python code which generated them are located in **data/custom/new_data**.
 
-All data was generated using Semantic Scholar API. To use the API efficiently, you should request an API key through their website first.
+Welcome to our NLP project at Tel Aviv University, focused on different approaches to improve performance of existing techniques found in the [original project](https://github.com/nianlonggu/Local-Citation-Recommendation). For detailed information, please refer to our comprehensive PDF article.
 
-To use our new data or some of it, you can use the existing json with the titles already appended in **papers_with_additional_fields.json**.
+## Project Data
 
-If you would like to modify the existing data, you can use **papers_metadata.json** and choose the fields that you would like to use.
+All of our newly generated data and the Python code responsible for their creation are located in the directory: **data/custom/new_data**.
 
-If you would like to try and generate new data and append it to the existing one on **papers.json**, you can use the papers IDs mapping that we generated and use the semantic scholar API.
+We obtained all this data using the Semantic Scholar API. To utilize the API effectively, make sure to obtain an API key through their website.
 
-All the steps are elaborated on our PDF.
+To leverage our new data or a subset of it, you can access the pre-existing JSON file with titles already appended: **papers_with_additional_fields.json**.
 
-To run the baseline code, follow the instructions on https://github.com/nianlonggu/Local-Citation-Recommendation.
+If you wish to modify the existing data or select specific fields for your use, you can start with **papers_metadata.json**.
+
+For those interested in generating new data and appending it to the existing corpus within **papers.json**, we've provided a helpful mapping of paper IDs. This mapping can be used with the Semantic Scholar API.
+
+Detailed instructions for these processes can be found in our PDF document.
+
+## Running the Baseline Code
+
+To execute the baseline code, kindly follow the instructions provided in the [original project repository](https://github.com/nianlonggu/Local-Citation-Recommendation).
+
+Thank you for exploring our project! For any questions or additional information, please refer to our PDF or reach out to our team.
+
