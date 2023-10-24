@@ -1,0 +1,76 @@
+import json
+import requests
+import time
+import jellyfish
+
+
+def fetch_id_for_title(data):
+    title, counter = data
+    api_key = 'YOUR API KEY HERE'
+    base_url = "https://api.semanticscholar.org/graph/v1/paper/search"
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": api_key
+    }
+    retries = 7
+    delay = 2
+    shortened_retry = False
+    print(f"Processing document number: {counter}")
+    while retries > 0:
+        params = {"query": title if not shortened_retry else ' '.join(title.split()[:4]),
+                  "fields": "paperId,title"}  # Fetching paperId and title
+
+        response = requests.get(base_url, headers=headers, params=params)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("data") and len(data["data"]) > 0:
+                best_match = max(data["data"], key=lambda x: jellyfish.jaro_winkler_similarity(title, x.get("title", "")))
+                if "paperId" in best_match:
+                    return title, best_match["paperId"]
+                else:
+                    print(f"Error!!!! for title {title}. did not find paperId")
+                    return title, "NA"
+            else:
+                if not shortened_retry:
+                    shortened_retry = True
+                    continue
+                print(f"Error {response.status_code} for title {title}.")
+                return title, "NA"
+        elif response.status_code == 429:
+            time.sleep(delay)
+            delay *= 2
+            retries -= 1
+            print('TOO MANY REQUESTS')
+        else:
+            print(f"Error {response.status_code} for title {title}.")
+            return title, "NA"
+
+    print(f'TOO SLOW for {title}')
+    return title, "NA"
+
+
+with open('papers.json', 'r') as file:
+    papers = json.load(file)
+
+titles = [(' '.join(paper_data["title"].split()), idx+1) for idx, (paper_id, paper_data) in
+          enumerate(list(papers.items()))]
+
+results = [fetch_id_for_title(title_data) for title_data in titles]
+
+paper_id_mapping = {}  # Dictionary to hold the mapping of semantic scholar paper_id to original id
+
+for title, paper_id in results:
+    original_key = next((key for key, value in papers.items() if ' '.join(value["title"].split()) == title), None)
+
+    if original_key:
+        if paper_id != "NA":
+            paper_id_mapping[paper_id] = original_key
+        else:
+            print(f"Could not find paperId for: {title}")
+    else:
+        print(f"Title mismatch occurred for: {title}")
+
+# Save the mapping to the new JSON file
+with open('papers_id_mapping.json', 'w') as file:
+    json.dump(paper_id_mapping, file, indent=4)
