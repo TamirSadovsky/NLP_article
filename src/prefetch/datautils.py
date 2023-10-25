@@ -199,7 +199,7 @@ class PrefetchDataset( Dataset ):
             tokens = self.tokenizer(para_text[0], return_tensors="pt", max_length=self.max_seq_len, truncation=True, padding="max_length")
 
             input_ids = tokens['input_ids'].squeeze().tolist()
-            attention_mask = [1 if token_id != pad_token_id else 0 for token_id in input_ids]
+            #attention_mask = [1 if token_id != pad_token_id else 0 for token_id in input_ids]
             paragraph_seq_list.append(input_ids)
 
             # Add binary labels based on whether the paragraph is empty or not
