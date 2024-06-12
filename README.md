@@ -1,6 +1,7 @@
 ## Local Citation Recommendation - Advancing Prefetching: A Comparative Analysis of Encoding Techniques for Citation Retrieval 📚
 
-Welcome to our NLP project at Tel Aviv University, where we explore innovative encoding techniques for the prefetching step and introduce substantial enhancements to the dataset originally utilized in the [referenced article](https://arxiv.org/pdf/2112.01206). For detailed information, please refer to our comprehensive PDF article. 💡
+Welcome to our NLP project at Tel Aviv University, where we explore innovative encoding techniques for the prefetching step and introduce substantial enhancements to the dataset originally utilized in the [referenced article](https://arxiv.org/pdf/2112.01206).
+For detailed information, please refer to our [PDF article](https://github.com/TamirSadovsky/NLP_project/blob/master/NLP_PDF.pdf). 💡
 
 ## Project Data 📂
 
